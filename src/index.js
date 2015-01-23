@@ -22,7 +22,7 @@ function parseDependencyTree(index, options) {
 
     options = graph.options = options || {};
 
-    options.beforeParse = isFunction(options.beforeParse) ? options.beforeParse : noop;
+    options.beforeParse = isFunction(options.beforeParse) ? options.beforeParse : false;
 
     exts = options.exts;
     options.exts = isArray(exts) ? exts : (isString(exts) ? exts : ["js", "json"]);
@@ -86,7 +86,9 @@ function parseDependencies(dependency, graph) {
         parentDirname = filePath.dir(dependency.fullPath),
         options = graph.options;
 
-    options.beforeParse(cleanContent, dependency, graph);
+    if (options.beforeParse) {
+        cleanContent = options.beforeParse(cleanContent, dependency, graph);
+    }
 
     cleanContent.replace(graph.reInclude, function(match, functionType, dependencyPath, offset) {
         var opts = resolve(dependencyPath, parentDirname, options);
@@ -119,5 +121,3 @@ function removeComments(str) {
         return spaces(match.length);
     });
 }
-
-function noop() {}
