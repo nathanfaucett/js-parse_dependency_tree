@@ -27,7 +27,7 @@ function parseDependencyTree(index, options) {
     exts = options.exts;
     options.exts = isArray(exts) ? exts : (isString(exts) ? exts : ["js", "json"]);
 
-    graph.reInclude = buildIncludeRegExp(options.includeNames ? options.includeNames : ["require", "require\\.resolve"]);
+    graph.reInclude = buildIncludeRegExp(options.includeNames ? options.includeNames : ["require", "require\\.resolve"], options.useBraces);
 
     if (!filePath.isAbsolute(index)) {
         index = filePath.join(process.cwd(), index);
@@ -52,7 +52,9 @@ function parseDependency(options, graph) {
         dependency = hash[id];
 
     if (!dependency) {
-        dependency = {};
+        dependency = {
+            dependencies: []
+        };
 
         dependency.index = array.length;
         hash[id] = array[dependency.index] = dependency;
@@ -67,19 +69,19 @@ function parseDependency(options, graph) {
             dependency.pkg = options.pkg;
         }
 
-        if (options.start != null && options.end != null) {
-            dependency.start = options.start;
-            dependency.end = options.end;
-        }
-
         dependency.fullPath = options.fullPath;
         parseDependencies(dependency, graph);
     }
+
+    return dependency;
 }
 
 function parseDependencies(dependency, graph) {
-    var content = helpers.readFile(dependency.fullPath),
+    var dependencies = dependency.dependencies,
+
+        content = helpers.readFile(dependency.fullPath),
         cleanContent = removeComments(content),
+
         parentDirname = filePath.dir(dependency.fullPath),
         options = graph.options;
 
@@ -88,19 +90,31 @@ function parseDependencies(dependency, graph) {
     }
 
     cleanContent.replace(graph.reInclude, function(match, functionType, dependencyPath, offset) {
-        var opts = resolve(dependencyPath, parentDirname, options);
+        var opts = resolve(dependencyPath, parentDirname, options),
+            dep;
 
-        opts.start = offset;
-        opts.end = offset + match.length;
+        dep = parseDependency(opts, graph);
 
-        parseDependency(opts, graph);
+        dependencies[dependencies.length] = {
+            start: offset,
+            end: offset + match.length,
+            index: dep.index
+        };
     });
 }
 
-function buildIncludeRegExp(functionName) {
-    return new RegExp(
-        "(" + (isArray(functionName) ? functionName.join("|") : functionName) + ")\\s*\\(\\s*[\"']([^'\"\\s]+)[\"']\\s*\\)", "g"
-    );
+function buildIncludeRegExp(functionName, useBraces) {
+    functionName = isArray(functionName) ? functionName.join("|") : functionName;
+
+    if (useBraces !== false) {
+        return new RegExp(
+            "(" + functionName + ")\\s*\\(\\s*[\"']([^'\"\\s]+)[\"']\\s*\\)", "g"
+        );
+    } else {
+        return new RegExp(
+            "(" + functionName + ")\\s*[\"']([^'\"\\s]+)[\"']\\s*[\\;\\n]", "g"
+        );
+    }
 }
 
 function spaces(length) {
