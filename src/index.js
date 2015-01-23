@@ -54,7 +54,8 @@ function parseDependency(options, graph) {
     if (!dependency) {
         dependency = {};
 
-        hash[id] = array[array.length] = dependency;
+        dependency.index = array.length;
+        hash[id] = array[dependency.index] = dependency;
 
         if (options.moduleName) {
             dependency.moduleName = options.moduleName;
