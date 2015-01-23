@@ -12,6 +12,7 @@ describe("parseDependencyTree(path : FilePath String, options : Object)", functi
         graph = parseDependencyTree(__dirname + "/lib_css/index", {
             includeNames: "\\@import",
             useBraces: false,
+            packageType: "style",
             exts: ["less", "css"]
         });
         assert.equal(graph.array.length, 2);
