@@ -41,11 +41,7 @@ function parseDependencyTree(index, options) {
         fullPath: index
     }, graph);
 
-    return {
-        array: graph.array,
-        reInclude: graph.reInclude,
-        options: options
-    };
+    return graph;
 }
 
 function parseDependency(options, graph) {
