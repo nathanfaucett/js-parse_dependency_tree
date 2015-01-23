@@ -87,7 +87,7 @@ function parseDependencies(dependency, graph) {
         options = graph.options;
 
     if (options.beforeParse) {
-        cleanContent = options.beforeParse(cleanContent, dependency, graph);
+        cleanContent = options.beforeParse(content, cleanContent, dependency, graph);
     }
 
     cleanContent.replace(graph.reInclude, function(match, functionType, dependencyPath, offset) {
