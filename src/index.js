@@ -1,5 +1,6 @@
 var isArray = require("is_array"),
     isString = require("is_string"),
+    isFunction = require("is_function"),
     filePath = require("file_path"),
     resolve = require("resolve");
 
@@ -20,6 +21,8 @@ function parseDependencyTree(index, options) {
         exts;
 
     options = graph.options = options || {};
+
+    options.beforeParse = isFunction(options.beforeParse) ? options.beforeParse : noop;
 
     exts = options.exts;
     options.exts = isArray(exts) ? exts : (isString(exts) ? exts : ["js", "json"]);
@@ -83,6 +86,8 @@ function parseDependencies(dependency, graph) {
         parentDirname = filePath.dir(dependency.fullPath),
         options = graph.options;
 
+    options.beforeParse(cleanContent, dependency, graph);
+
     cleanContent.replace(graph.reInclude, function(match, functionType, dependencyPath, offset) {
         var opts = resolve(dependencyPath, parentDirname, options);
 
@@ -114,3 +119,5 @@ function removeComments(str) {
         return spaces(match.length);
     });
 }
+
+function noop() {}
