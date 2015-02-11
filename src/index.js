@@ -60,6 +60,7 @@ function createDependency(options, graph, isModule) {
     if (!dependency) {
         dependency = {};
 
+        dependency.parsed = false;
         dependency.dependencies = [];
         dependency.fullPath = options.fullPath;
 
@@ -91,14 +92,20 @@ function createDependency(options, graph, isModule) {
 parse.createDependency = createDependency;
 
 function parseDependecy(dependency, graph, isModule) {
-    var lastModule = graph.module;
+    var lastModule;
 
-    if (isModule) {
-        graph.module = dependency;
-    }
-    parseDependecies(dependency, graph);
-    if (isModule) {
-        graph.module = lastModule;
+    if (dependency.parsed === false) {
+        dependency.parsed = true;
+
+        lastModule = graph.module;
+
+        if (isModule) {
+            graph.module = dependency;
+        }
+        parseDependecies(dependency, graph);
+        if (isModule) {
+            graph.module = lastModule;
+        }
     }
     return dependency;
 }
