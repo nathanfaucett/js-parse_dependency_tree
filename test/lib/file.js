@@ -2,4 +2,4 @@ var file = exports;
 
 
 file.name = __filename;
-file.directory = __directoty;
+file.directory = __dirname;
