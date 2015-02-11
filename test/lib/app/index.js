@@ -1,4 +1,4 @@
 var app = exports;
 
 
-exports.file = require("./file");
+app.file = require("./file");
