@@ -1,6 +1,10 @@
-var utils = require("./utils/utils"),
-    mod = require("./modules/mod");
+require.async("./math", function(math) {
+    var test = require("./test");
 
+    require.async("./mod", function(mod) {
+        mod.set("asdf")
+        console.log(mod.get());
+    });
 
-console.log(mod.add(1, 2, 3, 4, 5, 6));
-console.log(mod.sub(1, 2, 3, 4, 5, 6));
+    console.log(math, test(true));
+});

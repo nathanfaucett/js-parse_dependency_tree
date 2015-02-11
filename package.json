@@ -21,6 +21,8 @@
     "mocha": "^2.1.0"
   },
   "dependencies": {
+    "index_of": "nathanfaucett/index_of",
+    "extend": "nathanfaucett/extend",
     "is_array": "nathanfaucett/is_array",
     "is_string": "nathanfaucett/is_string",
     "is_function": "nathanfaucett/is_function",
