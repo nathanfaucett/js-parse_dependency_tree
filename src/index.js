@@ -44,6 +44,7 @@ function parse(index, options) {
         fullPath: helpers.findExt(index, options.exts)
     }, graph, true);
 
+    graph.module.module = graph.module;
     parseDependecy(graph.module, graph, true);
 
     return graph;
