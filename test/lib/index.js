@@ -1,4 +1,4 @@
-var file = require("./file");
+var app = require("./app");
 
 
 require.async("./math", function(math) {
