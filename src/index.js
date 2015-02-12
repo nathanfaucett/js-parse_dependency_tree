@@ -1,14 +1,13 @@
 var isArray = require("is_array"),
     isString = require("is_string"),
     isFunction = require("is_function"),
-    extend = require("extend"),
     filePath = require("file_path"),
+    forEach = require("for_each"),
     indexOf = require("index_of"),
     resolve = require("resolve");
 
 
 var helpers = resolve.helpers,
-    nativeFunctions = {},
     reComment = /(\/\*([\s\S]*?)\*\/|([^:]|^)\/\/(.*)$)/mg;
 
 
@@ -30,10 +29,10 @@ function parse(index, options) {
         module;
 
     options = options || {};
-    options.functions = extend(options.functions || {}, nativeFunctions);
+    options.parseAsync = options.parseAsync != null ? !!options.parseAsync : true;
     options.beforeParse = isFunction(options.beforeParse) ? options.beforeParse : false;
     options.exts = isArray(options.exts) ? options.exts : (isString(options.exts) ? options.exts : ["js", "json"]);
-    graph.reInclude = buildIncludeRegExp(options.includeNames ? options.includeNames : ["require", "require\\.resolve", "require\\.async"], options.useBraces);
+    graph.reInclude = buildIncludeRegExp(options.includeNames ? options.includeNames : ["require"], options.useBraces);
 
     if (!filePath.isAbsolute(index)) {
         index = filePath.join(process.cwd(), index);
@@ -43,8 +42,9 @@ function parse(index, options) {
     graph.options = options;
 
     module = createDependency({
-        fullPath: helpers.findExt(index, options.exts)
-    }, graph, true);
+        fullPath: helpers.findExt(index, options.exts),
+        isModule: true
+    }, graph);
 
     module.module = graph.module = graph.rootModule = module;
     parseDependecy(graph.module, graph, true);
@@ -52,7 +52,7 @@ function parse(index, options) {
     return graph;
 }
 
-function createDependency(options, graph, isModule) {
+function createDependency(options, graph) {
     var array = graph.array,
         hash = graph.hash,
 
@@ -60,16 +60,17 @@ function createDependency(options, graph, isModule) {
         moduleHash = graph.moduleHash,
 
         id = options.moduleName ? options.moduleName : options.fullPath,
-        dependency = isModule ? moduleHash[id] : hash[id];
+        dependency = options.isModule ? moduleHash[id] : hash[id];
 
     if (!dependency) {
         dependency = {};
 
+        dependency.async = false;
         dependency.parsed = false;
         dependency.dependencies = [];
         dependency.fullPath = options.fullPath;
 
-        if (isModule) {
+        if (options.isModule) {
             modules[modules.length] = moduleHash[id] = dependency;
             dependency.moduleFileName = createFileName(options.fullPath, graph.root);
         }
@@ -93,29 +94,17 @@ function createDependency(options, graph, isModule) {
 parse.createDependency = createDependency;
 
 function parseDependecy(dependency, graph, isModule) {
-    var lastModule, dependencies;
+    var graphModule = graph.module,
+        dependencyModule = dependency.module ? dependency.module : (dependency.module = isModule ? dependency : graphModule),
+        dependencies = dependencyModule.dependencies;
+
+    if (indexOf(dependencies, dependency) === -1) {
+        dependencies[dependencies.length] = dependency;
+    }
 
     if (dependency.parsed === false) {
         dependency.parsed = true;
-
-        lastModule = graph.module;
-
-        if (isModule) {
-            dependency.module = dependency;
-            graph.module = dependency;
-        } else {
-            dependency.module = graph.module;
-        }
-
-        dependencies = dependency.module.dependencies;
-        if (indexOf(dependencies, dependency) === -1) {
-            dependencies[dependencies.length] = dependency;
-        }
-
         parseDependecies(dependency, graph);
-        if (isModule) {
-            graph.module = lastModule;
-        }
     }
 
     return dependency;
@@ -128,84 +117,102 @@ function parseDependecies(dependency, graph) {
 
         parentDirname = filePath.dir(dependency.fullPath),
         options = graph.options,
-        functions = options.functions;
+        parseAsync = options.parseAsync,
+
+        contents;
+
+    dependency.async = false;
 
     if (options.beforeParse) {
         cleanContent = options.beforeParse(content, cleanContent, dependency, graph);
     }
 
-    cleanContent.replace(graph.reInclude, function(match, functionType, dependencyPath) {
-        var opts = resolve(dependencyPath, parentDirname, options),
-            fn = functions[functionType],
-            dep;
+    if (parseAsync) {
+        contents = parseAsyncCallbacks(cleanContent, graph);
 
-        if (fn) {
-            fn(opts, cleanContent, match.length, dependency, graph);
-        } else {
+        forEach(contents, function(content) {
+            var graphModule = graph.module;
+
+            content.replace(graph.reInclude, function(match, includeName, functionName, dependencyPath) {
+                var opts = resolve(dependencyPath, parentDirname, options),
+                    dep;
+
+                opts.isModule = functionName === asyncString;
+                dep = createDependency(opts, graph);
+
+                if (opts.isModule) {
+                    graph.module = dep;
+                }
+                parseDependecy(dep, graph);
+            });
+            graph.module = graphModule;
+        });
+    } else {
+        cleanContent.replace(graph.reInclude, function(match, includeName, functionName, dependencyPath) {
+            var opts = resolve(dependencyPath, parentDirname, options),
+                dep;
+
             dep = createDependency(opts, graph);
             parseDependecy(dep, graph);
-        }
-    });
+        });
+    }
 }
 parse.parseDependecies = parseDependecies;
 
-nativeFunctions["require.async"] = requireAsync;
+var asyncString = "async";
 
-function requireAsync(options, content, offset, parentDependency, graph) {
-    var dependency = createDependency(options, graph, true),
+function parseAsyncCallbacks(content, graph) {
+    var results = [content],
+        index = 0,
+        textIndex = 0;
 
-        lastModule = graph.module,
-        body = parseAsyncCallback(content, offset),
+    content.replace(graph.reInclude, function(match, includeName, functionName, dependencyPath, offset) {
+        var last, c, start;
 
-        graphOptions = graph.options,
-        functions = graphOptions.functions,
+        if (functionName === asyncString) {
+            last = results[index];
+            c = parseAsyncCallback(content, offset);
+            start = parseAsyncCallback_lastStart - textIndex;
 
-        parentDirname = filePath.dir(parentDependency.fullPath);
+            results[index] = last.substr(0, start) + last.substr(start + c.length, last.length);
+            results[results.length] = c;
 
-    graph.module = dependency;
-    body.replace(graph.reInclude, function(match, functionType, dependencyPath) {
-        var opts = resolve(dependencyPath, parentDirname, graphOptions),
-            fn = functions[functionType],
-            dep;
-
-        if (fn) {
-            fn(opts, body, match.length, parentDependency, graph);
-        } else {
-            dep = createDependency(opts, graph);
-            parseDependecy(dep, graph);
+            textIndex = start;
+            index++;
         }
     });
-    parseDependecy(dependency, graph);
-    graph.module = lastModule;
+
+    return results;
 }
+
+var parseAsyncCallback_lastStart = 0,
+    parseAsyncCallback_lastEnd = 0;
 
 function parseAsyncCallback(content, index) {
     var body = "",
         last = true,
         length = content.length,
-        ch = content.charAt(index);
+        ch;
 
-    while (ch !== "{" && index < length) {
-        index++;
-        ch = content.charAt(index);
-    }
+    parseAsyncCallback_lastStart = index;
 
     while (index < length) {
-        index++;
-        ch = content.charAt(index);
+        ch = content.charAt(index++);
 
         if (ch === "{") {
             last = false;
         } else if (ch === "}") {
-            if (last) {
+            if (last === true) {
                 break;
             } else {
                 last = true;
             }
-        } else {
-            body += ch;
         }
+
+        body += ch;
     }
+
+    parseAsyncCallback_lastEnd = index;
 
     return body;
 }
@@ -215,11 +222,11 @@ function buildIncludeRegExp(functionName, useBraces) {
 
     if (useBraces !== false) {
         return new RegExp(
-            "(" + functionName + ")\\s*\\(\\s*[\"']([^'\"\\s]+)[\"']\\s*[\\,\\)]", "g"
+            "(" + functionName + ")(?:\\.([a-zA-Z_$]+))?\\s*\\(\\s*[\"']([^'\"\\s]+)[\"']\\s*[\\,\\)]", "g"
         );
     } else {
         return new RegExp(
-            "(" + functionName + ")\\s*[\"']([^'\"\\s]+)[\"']\\s*[\\;\\n]", "g"
+            "(" + functionName + ")(?:\\.([a-zA-Z_$]+))?\\s*[\"']([^'\"\\s]+)[\"']\\s*[\\;\\n]", "g"
         );
     }
 }

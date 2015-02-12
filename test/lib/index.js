@@ -12,4 +12,6 @@ require.async("./math", function(math) {
     console.log(math, test(true));
 });
 
-console.log(app.file);
+var add = require("./math/add");
+
+console.log(app.file, add(5, 10));

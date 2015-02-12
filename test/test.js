@@ -8,8 +8,8 @@ describe("parseDependencyTree(path : FilePath String, options : Object)", functi
 
         graph = parseDependencyTree(__dirname + "/lib/index");
 
-        assert.equal(graph.modules[0].dependencies.length, 3);
-        assert.equal(graph.modules[1].dependencies.length, 4);
+        assert.equal(graph.modules[0].dependencies.length, 4);
+        assert.equal(graph.modules[1].dependencies.length, 3);
         assert.equal(graph.modules[2].dependencies.length, 1);
 
         graph = parseDependencyTree(__dirname + "/lib_css/index", {
