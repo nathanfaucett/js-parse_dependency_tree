@@ -21,6 +21,7 @@ function parse(index, options) {
             root: null,
             options: null,
             module: null,
+            rootModule: null,
             modules: [],
             moduleHash: {},
             array: [],
@@ -45,7 +46,7 @@ function parse(index, options) {
         fullPath: helpers.findExt(index, options.exts)
     }, graph, true);
 
-    graph.module = module.module = module;
+    module.module = graph.module = graph.rootModule = module;
     parseDependecy(graph.module, graph, true);
 
     return graph;
@@ -69,8 +70,7 @@ function createDependency(options, graph, isModule) {
         dependency.fullPath = options.fullPath;
 
         if (isModule) {
-            dependency.moduleIndex = modules.length;
-            modules[dependency.moduleIndex] = moduleHash[id] = dependency;
+            modules[modules.length] = moduleHash[id] = dependency;
             dependency.moduleFileName = createFileName(options.fullPath, graph.root);
         }
 
