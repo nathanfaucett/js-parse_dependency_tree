@@ -23,8 +23,6 @@
   "dependencies": {
     "extend": "nathanfaucett/extend",
     "file_path": "nathanfaucett/file_path",
-    "for_each": "git://github.com/nathanfaucett/for_each",
-    "index_of": "nathanfaucett/index_of",
     "is_array": "nathanfaucett/is_array",
     "is_function": "nathanfaucett/is_function",
     "is_string": "nathanfaucett/is_string",
