@@ -65,7 +65,6 @@ function createDependency(options, graph) {
     if (!dependency) {
         dependency = {};
 
-        dependency.async = false;
         dependency.parsed = false;
         dependency.dependencies = [];
         dependency.fullPath = options.fullPath;
@@ -95,11 +94,17 @@ parse.createDependency = createDependency;
 
 function parseDependecy(dependency, graph, isModule) {
     var graphModule = graph.module,
-        dependencyModule = dependency.module ? dependency.module : (dependency.module = isModule ? dependency : graphModule),
-        dependencies = dependencyModule.dependencies;
+        rootModule = graph.rootModule,
+        parent = dependency.parent,
+        dependencyModule = dependency.module ? dependency.module : (dependency.module = isModule ? dependency : graphModule);
 
-    if (indexOf(dependencies, dependency) === -1) {
-        dependencies[dependencies.length] = dependency;
+    if (parent) {
+        if (graphModule === rootModule && parent !== rootModule) {
+            removeDependency(parent, dependency);
+            addDependency(rootModule, dependency);
+        }
+    } else {
+        addDependency(dependencyModule, dependency);
     }
 
     if (dependency.parsed === false) {
@@ -111,6 +116,18 @@ function parseDependecy(dependency, graph, isModule) {
 }
 parse.parseDependecy = parseDependecy;
 
+function addDependency(module, dependency) {
+    var dependencies = module.dependencies;
+    dependencies[dependencies.length] = dependency;
+    dependency.parent = module;
+}
+
+function removeDependency(module, dependency) {
+    var dependencies = module.dependencies;
+    dependencies.splice(indexOf(dependencies, dependency), 1);
+    dependency.parent = null;
+}
+
 function parseDependecies(dependency, graph) {
     var content = helpers.readFile(dependency.fullPath),
         cleanContent = removeComments(content),
@@ -120,8 +137,6 @@ function parseDependecies(dependency, graph) {
         parseAsync = options.parseAsync,
 
         contents;
-
-    dependency.async = false;
 
     if (options.beforeParse) {
         cleanContent = options.beforeParse(content, cleanContent, dependency, graph);

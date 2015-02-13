@@ -1,17 +1,8 @@
 var app = require("./app");
 
 
-require.async("./math", function(math) {
-    var test = require("./test");
+app.init();
 
-    require.async("./mod", function(mod) {
-        mod.set("asdf");
-        console.log(mod.get());
-    });
-
-    console.log(math, test(true));
-});
 
 var add = require("./math/add");
-
-console.log(app.file, add(5, 10));
+console.log(add(10, 5));
