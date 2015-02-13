@@ -49,6 +49,7 @@ function parseDependencyTree(index, opts) {
     options.beforeParse = isFunction(opts.beforeParse) ? opts.beforeParse : false;
     options.useBraces = opts.useBraces != null ? !!opts.useBraces : true;
     options.reInclude = buildIncludeRegExp(opts.includeNames ? opts.includeNames : ["require"], options.useBraces);
+    options.packageType = opts.packageType;
 
     if (!filePath.isAbsolute(index)) {
         index = filePath.join(process.cwd(), index);
