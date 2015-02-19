@@ -5,14 +5,11 @@ var app = exports;
 
 
 app.init = function() {
-    require.async("./math", function(math) {
-        var test = require("./test");
+    var test = require("./test"),
+        mod = require("./mod");
 
-        require.async("./mod", function(mod) {
-            mod.set("asdf");
-            console.log(mod.get());
-        });
+    mod.set("asdf");
 
-        console.log(math, test(true));
-    });
+    console.log(mod.get());
+    console.log(test(true));
 };

@@ -3,6 +3,7 @@ var isArray = require("is_array"),
     isString = require("is_string"),
     isFunction = require("is_function"),
     filePath = require("file_path"),
+    mixin = require("mixin"),
     resolve = require("resolve");
 
 
@@ -33,6 +34,7 @@ function Dependency() {
     this.version = null;
     this.pkg = null;
 
+    this.mappings = {};
     this.isParsed = false;
 }
 
@@ -61,7 +63,7 @@ function parseDependencyTree(index, opts) {
     dependency = createDependency({
         fullPath: helpers.findExt(index, options.extensions),
         isModule: true
-    }, tree);
+    }, null, tree);
 
     tree.root = dependency;
 
@@ -70,7 +72,7 @@ function parseDependencyTree(index, opts) {
     return tree;
 }
 
-function createDependency(options, tree) {
+function createDependency(options, parent, tree) {
     var children = tree.children,
         childHash = tree.childHash,
 
@@ -92,11 +94,15 @@ function createDependency(options, tree) {
         }
         if (options.pkg) {
             dependency.pkg = options.pkg;
-            dependency.mappings = parsePackageMappings(
-                dependency.pkg,
+            parsePackageMappings(
+                dependency,
                 filePath.dir(dependency.fullPath),
                 tree.options.packageType
             );
+        }
+
+        if (parent) {
+            mixin(dependency.mappings, parent.mappings);
         }
     }
 
@@ -120,35 +126,21 @@ function parseDependecies(dependency, tree) {
 
         parentDirname = filePath.dir(dependency.fullPath),
 
-        options = tree.options,
-
-        lastMappings = options.mappings,
-        currentMappings = lastMappings,
-        mappings = dependency.mappings;
+        options = tree.options;
 
     if (options.beforeParse) {
         cleanContent = options.beforeParse(content, cleanContent, dependency, tree);
     }
 
-    if (mappings) {
-        options.mappings = currentMappings = mappings;
-    }
+    options.mappings = dependency.mappings;
     cleanContent.replace(options.reInclude, function(match, includeName, functionName, dependencyPath) {
-        var opts, dep;
+        var opts = resolve(dependencyPath, parentDirname, options),
+            dep;
 
-        if (currentMappings && currentMappings[dependencyPath]) {
-            opts = {
-                fullPath: currentMappings[dependencyPath]
-            };
-        } else {
-            opts = resolve(dependencyPath, parentDirname, options);
-        }
-
-        dep = createDependency(opts, tree);
+        dep = createDependency(opts, dependency, tree);
         addChild(dependency, dep);
         parseDependecy(dep, tree);
     });
-    options.mappings = lastMappings;
 }
 parseDependencyTree.parseDependecies = parseDependecies;
 
@@ -158,20 +150,18 @@ function addChild(parent, child) {
     children[children.length] = child;
 }
 
-function parsePackageMappings(pkg, dirname, type) {
-    var mapping = pkg[type],
-        out = {},
+function parsePackageMappings(dependency, dirname, type) {
+    var pkg = dependency.pkg,
+        mappings = pkg[type],
+        out = dependency.mappings,
         key;
 
-    if (isObject(mapping)) {
-        for (key in mapping) {
-            if (mapping.hasOwnProperty(key)) {
-                out[key] = filePath.join(dirname, mapping[key]);
+    if (isObject(mappings)) {
+        for (key in mappings) {
+            if (mappings.hasOwnProperty(key)) {
+                out[key] = filePath.join(dirname, mappings[key]);
             }
         }
-        return out;
-    } else {
-        return out;
     }
 }
 
