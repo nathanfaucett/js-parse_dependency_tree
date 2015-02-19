@@ -24,6 +24,7 @@
     "extend": "nathanfaucett/extend",
     "file_path": "nathanfaucett/file_path",
     "is_array": "nathanfaucett/is_array",
+    "is_object": "nathanfaucett/is_object",
     "is_function": "nathanfaucett/is_function",
     "is_string": "nathanfaucett/is_string",
     "resolve": "nathanfaucett/resolve"

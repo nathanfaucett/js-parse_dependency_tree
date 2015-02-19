@@ -1,4 +1,4 @@
-var folder = require("./folder");;
+var folder = require("./folder");
 
 
 var app = exports;

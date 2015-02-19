@@ -1,0 +1,6 @@
+{
+    "main": "./folder.js",
+    "browser": {
+        "file": "./file.js"
+    }
+}

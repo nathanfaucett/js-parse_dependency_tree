@@ -1,4 +1,5 @@
 var isArray = require("is_array"),
+    isObject = require("is_object"),
     isString = require("is_string"),
     isFunction = require("is_function"),
     filePath = require("file_path"),
@@ -91,6 +92,11 @@ function createDependency(options, tree) {
         }
         if (options.pkg) {
             dependency.pkg = options.pkg;
+            dependency.mappings = parsePackageMappings(
+                dependency.pkg,
+                filePath.dir(dependency.fullPath),
+                tree.options.packageType
+            );
         }
     }
 
@@ -113,20 +119,36 @@ function parseDependecies(dependency, tree) {
         cleanContent = removeComments(content),
 
         parentDirname = filePath.dir(dependency.fullPath),
-        options = tree.options;
+
+        options = tree.options,
+
+        lastMappings = options.mappings,
+        currentMappings = lastMappings,
+        mappings = dependency.mappings;
 
     if (options.beforeParse) {
         cleanContent = options.beforeParse(content, cleanContent, dependency, tree);
     }
 
+    if (mappings) {
+        options.mappings = currentMappings = mappings;
+    }
     cleanContent.replace(options.reInclude, function(match, includeName, functionName, dependencyPath) {
-        var opts = resolve(dependencyPath, parentDirname, options),
-            dep;
+        var opts, dep;
+
+        if (currentMappings && currentMappings[dependencyPath]) {
+            opts = {
+                fullPath: currentMappings[dependencyPath]
+            };
+        } else {
+            opts = resolve(dependencyPath, parentDirname, options);
+        }
 
         dep = createDependency(opts, tree);
         addChild(dependency, dep);
         parseDependecy(dep, tree);
     });
+    options.mappings = lastMappings;
 }
 parseDependencyTree.parseDependecies = parseDependecies;
 
@@ -134,6 +156,23 @@ function addChild(parent, child) {
     var children = parent.children;
     child.parent = parent;
     children[children.length] = child;
+}
+
+function parsePackageMappings(pkg, dirname, type) {
+    var mapping = pkg[type],
+        out = {},
+        key;
+
+    if (isObject(mapping)) {
+        for (key in mapping) {
+            if (mapping.hasOwnProperty(key)) {
+                out[key] = filePath.join(dirname, mapping[key]);
+            }
+        }
+        return out;
+    } else {
+        return out;
+    }
 }
 
 /*
