@@ -1,4 +1,5 @@
-var isArray = require("is_array"),
+var has = require("has"),
+    isArray = require("is_array"),
     isObject = require("is_object"),
     isString = require("is_string"),
     isFunction = require("is_function"),
@@ -137,9 +138,11 @@ function parseDependecies(dependency, tree) {
         var opts = resolve(dependencyPath, parentDirname, options),
             dep;
 
-        dep = createDependency(opts, dependency, tree);
-        addChild(dependency, dep);
-        parseDependecy(dep, tree);
+        if (opts !== false) {
+            dep = createDependency(opts, dependency, tree);
+            addChild(dependency, dep);
+            parseDependecy(dep, tree);
+        }
     });
 }
 parseDependencyTree.parseDependecies = parseDependecies;
@@ -154,12 +157,17 @@ function parsePackageMappings(dependency, dirname, type) {
     var pkg = dependency.pkg,
         mappings = pkg[type],
         out = dependency.mappings,
-        key;
+        key, value;
 
     if (isObject(mappings)) {
         for (key in mappings) {
-            if (mappings.hasOwnProperty(key)) {
-                out[key] = filePath.join(dirname, mappings[key]);
+            if (has(mappings, key)) {
+                value = mappings[key];
+                if (isString(value)) {
+                    out[key] = filePath.join(dirname, value);
+                } else {
+                    out[key] = value;
+                }
             }
         }
     }

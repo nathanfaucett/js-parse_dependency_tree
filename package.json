@@ -21,6 +21,7 @@
     "mocha": "^2.1.0"
   },
   "dependencies": {
+    "has": "git://github.com/nathanfaucett/has",
     "extend": "git://github.com/nathanfaucett/extend",
     "file_path": "nathanfaucett/file_path",
     "is_array": "nathanfaucett/is_array",
