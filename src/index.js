@@ -138,11 +138,9 @@ function parseDependecies(dependency, tree) {
         var opts = resolve(dependencyPath, parentDirname, options),
             dep;
 
-        if (opts !== false) {
-            dep = createDependency(opts, dependency, tree);
-            addChild(dependency, dep);
-            parseDependecy(dep, tree);
-        }
+        dep = createDependency(opts, dependency, tree);
+        addChild(dependency, dep);
+        parseDependecy(dep, tree);
     });
 }
 parseDependencyTree.parseDependecies = parseDependecies;
@@ -163,10 +161,9 @@ function parsePackageMappings(dependency, dirname, type) {
         for (key in mappings) {
             if (has(mappings, key)) {
                 value = mappings[key];
+
                 if (isString(value)) {
                     out[key] = filePath.join(dirname, value);
-                } else {
-                    out[key] = value;
                 }
             }
         }
