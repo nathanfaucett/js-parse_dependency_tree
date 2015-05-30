@@ -77,7 +77,10 @@ function createDependency(options, parent, tree) {
     var children = tree.children,
         childHash = tree.childHash,
 
-        id = options.moduleName ? options.moduleName : options.fullPath,
+        moduleName = options.moduleName,
+        fullPath = options.fullPath,
+
+        id = moduleName ? moduleName : options.fullPath,
         dependency = childHash[id];
 
     if (!dependency) {
@@ -85,6 +88,9 @@ function createDependency(options, parent, tree) {
 
         dependency.index = children.length;
         childHash[id] = children[dependency.index] = dependency;
+        if (moduleName) {
+            childHash[fullPath] = dependency;
+        }
         dependency.fullPath = options.fullPath;
 
         if (options.moduleName) {
