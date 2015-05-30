@@ -141,8 +141,11 @@ function parseDependecies(dependency, tree) {
 
     options.mappings = dependency.mappings;
     cleanContent.replace(options.reInclude, function(match, includeName, functionName, dependencyPath) {
-        var opts = resolve(dependencyPath, parentDirname, options),
-            dep;
+        var opts, dep;
+
+        options.fromFilename = dependencyPath;
+        opts = resolve(dependencyPath, parentDirname, options);
+        options.fromFilename = null;
 
         dep = createDependency(opts, dependency, tree);
         addChild(dependency, dep);
