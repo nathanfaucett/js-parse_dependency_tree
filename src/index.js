@@ -128,10 +128,11 @@ function parseDependecy(dependency, tree) {
 parseDependencyTree.parseDependecy = parseDependecy;
 
 function parseDependecies(dependency, tree) {
-    var content = helpers.readFile(dependency.fullPath),
+    var fullPath = dependency.fullPath,
+        content = helpers.readFile(fullPath),
         cleanContent = removeComments(content),
 
-        parentDirname = filePath.dir(dependency.fullPath),
+        parentDirname = filePath.dir(fullPath),
 
         options = tree.options;
 
@@ -143,7 +144,7 @@ function parseDependecies(dependency, tree) {
     cleanContent.replace(options.reInclude, function(match, includeName, functionName, dependencyPath) {
         var opts, dep;
 
-        options.fromFilename = dependencyPath;
+        options.fromFilename = fullPath;
         opts = resolve(dependencyPath, parentDirname, options);
         options.fromFilename = null;
 
